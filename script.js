@@ -1,17 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     initForm();
     initAddItem();
-    initCheckout();
     setDefaultDate();
     updatePreview();
 });
 
 function setDefaultDate() {
-    const today = new Date().toISOString().split('T')[0];
-    document.querySelector('[name="invoice_date"]').value = today;
-    const due = new Date();
-    due.setDate(due.getDate() + 30);
-    document.querySelector('[name="due_date"]').value = due.toISOString().split('T')[0];
+    document.querySelector('[name="invoice_date"]').value = new Date().toISOString().split('T')[0];
 }
 
 function initForm() {
@@ -39,9 +34,9 @@ function addItem() {
     row.innerHTML = `
         <button type="button" class="remove-btn" onclick="this.parentElement.remove();updateTotals();updatePreview();">×</button>
         <div class="form-grid items-grid">
-            <div class="form-group desc"><label>Penerangan</label><input type="text" name="item_desc[]" placeholder="Item"></div>
+            <div class="form-group desc"><label>Penerangan</label><input type="text" name="item_desc[]"></div>
             <div class="form-group qty"><label>Kty</label><input type="number" name="item_qty[]" value="1" min="1"></div>
-            <div class="form-group price"><label>Harga</label><input type="number" name="item_price[]" step="0.01" placeholder="0.00"></div>
+            <div class="form-group price"><label>Harga</label><input type="number" name="item_price[]" step="0.01"></div>
             <div class="form-group total"><label>Jumlah</label><input type="text" class="item-total" readonly value="RM 0.00"></div>
         </div>
     `;
@@ -51,8 +46,7 @@ function addItem() {
 function updateItemTotal(row) {
     const qty = parseFloat(row.querySelector('[name="item_qty[]"]').value) || 0;
     const price = parseFloat(row.querySelector('[name="item_price[]"]').value) || 0;
-    const total = qty * price;
-    row.querySelector('.item-total').value = 'RM ' + total.toFixed(2);
+    row.querySelector('.item-total').value = 'RM ' + (qty * price).toFixed(2);
 }
 
 function updateTotals() {
@@ -64,7 +58,7 @@ function updateTotals() {
         updateItemTotal(row);
     });
 
-    const applySst = document.querySelector('[name="apply_sst"]').value === '1';
+    const applySst = document.getElementById('sstSelect').value === '1';
     const sst = applySst ? subtotal * 0.06 : 0;
     const grand = subtotal + sst;
 
@@ -102,80 +96,54 @@ function updatePreview() {
     preview.innerHTML = `
         <div class="inv-header">
             <div>
-                <div class="inv-company">${esc(data.business_name) || 'Nama Perniagaan'}</div>
-                <div style="font-size:10px;color:#64748b;margin-top:4px">
-                    ${data.ssm_no ? 'SSM: ' + esc(data.ssm_no) + '<br>' : ''}
-                    ${esc(data.business_address)?.replace(/\n/g, '<br>') || ''}<br>
-                    ${data.business_phone || ''} | ${data.business_email || ''}
-                </div>
+                <div class="inv-company">${data.business_name || 'Nama Perniagaan'}</div>
+                <div style="font-size:10px;color:#64748b">${data.business_address || ''}<br>${data.business_phone || ''}</div>
             </div>
             <div class="inv-title">INVOIS</div>
         </div>
         <div class="inv-meta">
-            <div><strong>No:</strong> ${esc(data.invoice_no) || 'INV-001'}</div>
-            <div><strong>Tarikh:</strong> ${formatDate(data.invoice_date)}</div>
-            ${data.due_date ? `<div><strong>Tamat:</strong> ${formatDate(data.due_date)}</div>` : ''}
+            <div><strong>No:</strong> ${data.invoice_no || 'INV-001'}</div>
+            <div><strong>Tarikh:</strong> ${data.invoice_date || '-'}</div>
         </div>
-        <div class="inv-customer">
-            <strong>Kepada:</strong><br>
-            ${esc(data.customer_name) || 'Nama Pelanggan'}<br>
-            ${esc(data.customer_address)?.replace(/\n/g, '<br>') || ''}
+        <div class="inv-customer" style="background:#f8fafc;padding:12px;border-radius:8px;margin:16px 0">
+            <strong>Kepada:</strong> ${data.customer_name || '-'}<br>${data.customer_address || ''}
         </div>
         <table class="inv-table">
             <thead><tr><th>Penerangan</th><th>Kty</th><th>Harga</th><th>Jumlah</th></tr></thead>
             <tbody>
                 ${items.length ? items.map(item => `
-                    <tr>
-                        <td>${esc(item.desc)}</td>
-                        <td>${item.qty}</td>
-                        <td>RM ${item.price.toFixed(2)}</td>
-                        <td>RM ${item.total.toFixed(2)}</td>
-                    </tr>
+                    <tr><td>${item.desc}</td><td>${item.qty}</td><td>RM ${item.price.toFixed(2)}</td><td>RM ${item.total.toFixed(2)}</td></tr>
                 `).join('') : '<tr><td colspan="4" style="text-align:center;color:#999">Tiada item</td></tr>'}
             </tbody>
         </table>
-        <div class="inv-totals">
+        <div class="inv-totals" style="text-align:right;margin-top:16px">
             <div>Subtotal: RM ${subtotal.toFixed(2)}</div>
             ${applySst ? `<div>SST (6%): RM ${sst.toFixed(2)}</div>` : ''}
-            <div class="grand">Jumlah: RM ${grand.toFixed(2)}</div>
+            <div style="font-weight:bold;font-size:16px">Jumlah: RM ${grand.toFixed(2)}</div>
         </div>
-        ${data.bank_name ? `
-            <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10px">
-                <strong>Maklumat Pembayaran:</strong><br>
-                ${esc(data.bank_name)} - ${esc(data.bank_account)}
-            </div>
-        ` : ''}
-        ${data.notes ? `<div style="margin-top:12px;font-size:10px;color:#64748b">${esc(data.notes)}</div>` : ''}
+        ${data.bank_name ? `<div style="margin-top:16px;font-size:10px;border-top:1px solid #e2e8f0;padding-top:12px"><strong>Bank:</strong> ${data.bank_name} - ${data.bank_account}</div>` : ''}
     `;
 
-    const invoiceData = { ...data, items, subtotal, sst, grand };
-    document.getElementById('invoiceDataField').value = JSON.stringify(invoiceData);
-    document.getElementById('checkoutInvoiceData').value = JSON.stringify(invoiceData);
+    saveInvoiceData({ ...data, items, subtotal, sst, grand });
 }
 
-function initCheckout() {
-    document.getElementById('checkoutForm')?.addEventListener('submit', function (e) {
-        const name = document.querySelector('[name="business_name"]').value.trim();
-        const customer = document.querySelector('[name="customer_name"]').value.trim();
-        if (!name || !customer) {
-            e.preventDefault();
-            alert('Sila isi nama perniagaan dan nama pelanggan.');
-            return false;
-        }
-        updatePreview();
+function saveInvoiceData(invoiceData) {
+    const form = document.getElementById('invoiceForm');
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd);
+
+    const items = [];
+    const descs = fd.getAll('item_desc[]');
+    const qtys = fd.getAll('item_qty[]');
+    const prices = fd.getAll('item_price[]');
+    descs.forEach((desc, i) => {
+        items.push({ desc, qty: parseFloat(qtys[i]) || 0, price: parseFloat(prices[i]) || 0 });
     });
-}
 
-function formatDate(d) {
-    if (!d) return '-';
-    return new Date(d).toLocaleDateString('ms-MY');
-}
+    const subtotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+    const sst = data.apply_sst === '1' ? subtotal * 0.06 : 0;
 
-function esc(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+    localStorage.setItem('invoiceData', JSON.stringify({ ...data, items, subtotal, sst, grand: subtotal + sst }));
 }
 
 function debounce(fn, wait) {

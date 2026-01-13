@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ms">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berjaya - InvoisKu</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .success-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .success-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-xl);
+            padding: 48px;
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            font-size: 36px;
+        }
+
+        .credits-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .credits-box .num {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="success-page">
+        <div class="success-card">
+            <div class="success-icon">✓</div>
+            <h1>Pembayaran Berjaya! 🎉</h1>
+            <p style="color:var(--text-secondary);margin-bottom:16px">Pakej invois anda telah diaktifkan.</p>
+
+            <div class="credits-box">
+                <div class="num">10</div>
+                <span style="color:var(--text-secondary)">Kredit Invois Tersedia</span>
+            </div>
+
+            <button id="downloadPdf" class="btn btn-primary btn-large btn-full">📥 Muat Turun Invois PDF</button>
+            <br><br>
+            <a href="index.html" class="btn btn-secondary">← Jana Invois Baru</a>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        document.getElementById('downloadPdf').addEventListener('click', function () {
+            const data = JSON.parse(localStorage.getItem('invoiceData') || '{}');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let y = 20;
+
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text(data.business_name || 'Perniagaan', 20, y);
+            doc.setFontSize(24);
+            doc.text('INVOIS', 200, y, { align: 'right' });
+            y += 15;
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('No: ' + (data.invoice_no || 'INV-001'), 20, y);
+            doc.text('Tarikh: ' + (data.invoice_date || '-'), 200, y, { align: 'right' });
+            y += 15;
+
+            doc.text('Kepada: ' + (data.customer_name || '-'), 20, y);
+            y += 20;
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('Penerangan', 20, y);
+            doc.text('Kty', 100, y);
+            doc.text('Harga', 130, y);
+            doc.text('Jumlah', 170, y);
+            y += 8;
+            doc.line(20, y, 190, y);
+            y += 5;
+
+            doc.setFont('helvetica', 'normal');
+            if (data.items) {
+                data.items.forEach(item => {
+                    if (item.desc || item.price) {
+                        doc.text(item.desc || '-', 20, y);
+                        doc.text(String(item.qty || 0), 100, y);
+                        doc.text('RM ' + (item.price || 0).toFixed(2), 130, y);
+                        doc.text('RM ' + ((item.qty || 0) * (item.price || 0)).toFixed(2), 170, y);
+                        y += 8;
+                    }
+                });
+            }
+
+            y += 10;
+            doc.setFont('helvetica', 'bold');
+            doc.text('Jumlah: RM ' + (data.grand || 0).toFixed(2), 190, y, { align: 'right' });
+
+            doc.save('Invois_' + (data.invoice_no || 'INV001') + '.pdf');
+        });
+    </script>
+</body>
+
+</html>
